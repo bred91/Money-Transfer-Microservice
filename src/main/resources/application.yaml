@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: money-transfer-service
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: money-transfer-group
+      # Never skip transfers published before the consumer group first joined (duplicates are handled idempotently)
+      auto-offset-reset: earliest
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.trusted.packages: "io.github.bred91.moneytransfer.dto"
+        spring.json.value.default.type: io.github.bred91.moneytransfer.dto.TransferEventDTO
+        spring.json.use.type.headers: false
+
+app:
+  kafka:
+    topic:
+      transfer: money-transfers
