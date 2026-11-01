@@ -81,6 +81,8 @@ public class AccountIntegrationTest {
                 .andExpect(jsonPath("$.ownerSurname").value("Rossi"))
                 .andExpect(jsonPath("$.balance").value(123.45))
                 .andExpect(jsonPath("$.status").value(AccountStatusEnum.ACTIVE.toString()))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.lastModifiedAt").isNotEmpty())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

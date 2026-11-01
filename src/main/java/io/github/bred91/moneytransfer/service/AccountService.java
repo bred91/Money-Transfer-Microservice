@@ -34,7 +34,8 @@ public class AccountService {
                     .status(AccountStatusEnum.ACTIVE)
                     .balance(accountRequest.getInitialBalance())
                     .build();
-            account = accountRepository.save(account);
+            // Flush immediately: the INSERT populates the creation timestamps returned in the response
+            account = accountRepository.saveAndFlush(account);
 
             log.info("Account created successfully with ID: {} for owner: {} {}",
                     account.getId(), account.getOwnerName(), account.getOwnerSurname());

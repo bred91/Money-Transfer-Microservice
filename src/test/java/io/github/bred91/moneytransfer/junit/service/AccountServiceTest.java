@@ -43,7 +43,7 @@ class AccountServiceTest {
         req.setOwnerSurname("Doe");
         req.setInitialBalance(new BigDecimal("100.00"));
 
-        when(accountRepository.save(any(AccountEntity.class))).thenAnswer(invocation -> {
+        when(accountRepository.saveAndFlush(any(AccountEntity.class))).thenAnswer(invocation -> {
             AccountEntity e = invocation.getArgument(0);
             e.setId(id(1));
             return e;
@@ -57,7 +57,7 @@ class AccountServiceTest {
         assertThat(result.getBalance()).isEqualByComparingTo("100.00");
 
         ArgumentCaptor<AccountEntity> captor = ArgumentCaptor.forClass(AccountEntity.class);
-        verify(accountRepository).save(captor.capture());
+        verify(accountRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getOwnerName()).isEqualTo("John");
     }
 
