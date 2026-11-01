@@ -6,11 +6,12 @@ import io.github.bred91.moneytransfer.enumeration.AccountStatusEnum;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class AccountResponseDTO {
-    private Long id;
+    private UUID id;
     private String ownerName;
     private String ownerSurname;
     private AccountStatusEnum status;

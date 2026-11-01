@@ -84,7 +84,7 @@ public class AccountIntegrationTest {
 
         // Extract generated ID from create response
         JsonNode json = objectMapper.readTree(createResponse);
-        long id = json.get("id").asLong();
+        String id = json.get("id").asString();
 
         // 3) Read list again: expected one account
         mockMvc.perform(get("/api/accounts"))

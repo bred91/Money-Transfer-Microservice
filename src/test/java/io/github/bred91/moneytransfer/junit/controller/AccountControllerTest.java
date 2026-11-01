@@ -1,5 +1,7 @@
 package io.github.bred91.moneytransfer.junit.controller;
 
+import static io.github.bred91.moneytransfer.TestIds.id;
+
 import io.github.bred91.moneytransfer.controller.AccountController;
 import io.github.bred91.moneytransfer.dto.AccountResponseDTO;
 import io.github.bred91.moneytransfer.dto.CreateAccountRequestDTO;
@@ -54,7 +56,7 @@ class AccountControllerTest {
         req.setInitialBalance(new BigDecimal("100.00"));
 
         AccountResponseDTO created = AccountResponseDTO.builder()
-                .id(1L)
+                .id(id(1))
                 .ownerName("John")
                 .ownerSurname("Doe")
                 .status(AccountStatusEnum.ACTIVE)
@@ -68,7 +70,7 @@ class AccountControllerTest {
         ResponseEntity<AccountResponseDTO> response = accountController.create(req);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getHeaders().getLocation()).hasToString("http://localhost/api/accounts/1");
+        assertThat(response.getHeaders().getLocation()).hasToString("http://localhost/api/accounts/" + id(1));
         assertThat(response.getBody()).isEqualTo(created);
 
         ArgumentCaptor<CreateAccountRequestDTO> captor = ArgumentCaptor.forClass(CreateAccountRequestDTO.class);
@@ -81,7 +83,7 @@ class AccountControllerTest {
     @Test
     void get_shouldReturn200WithBody() {
         AccountResponseDTO dto = AccountResponseDTO.builder()
-                .id(2L)
+                .id(id(2))
                 .ownerName("Alice")
                 .ownerSurname("Smith")
                 .status(AccountStatusEnum.ACTIVE)
@@ -90,33 +92,33 @@ class AccountControllerTest {
                 .lastModifiedAt(LocalDateTime.now())
                 .build();
 
-        when(accountService.getAccount(2L)).thenReturn(dto);
+        when(accountService.getAccount(id(2))).thenReturn(dto);
 
-        ResponseEntity<AccountResponseDTO> response = accountController.get(2L);
+        ResponseEntity<AccountResponseDTO> response = accountController.get(id(2));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(dto);
-        verify(accountService).getAccount(2L);
+        verify(accountService).getAccount(id(2));
     }
 
     @Test
     void get_shouldThrowNotFoundWhenAccountDoesNotExist() {
-        when(accountService.getAccount(999L))
+        when(accountService.getAccount(id(999)))
                 .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
 
-        assertThatThrownBy(() -> accountController.get(999L))
+        assertThatThrownBy(() -> accountController.get(id(999)))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("404 NOT_FOUND")
                 .hasMessageContaining("Account not found");
 
-        verify(accountService).getAccount(999L);
+        verify(accountService).getAccount(id(999));
     }
 
     @Test
     void list_shouldReturn200WithBody() {
         List<AccountResponseDTO> list = List.of(
-                AccountResponseDTO.builder().id(1L).build(),
-                AccountResponseDTO.builder().id(2L).build()
+                AccountResponseDTO.builder().id(id(1)).build(),
+                AccountResponseDTO.builder().id(id(2)).build()
         );
 
         when(accountService.listAccounts()).thenReturn(list);

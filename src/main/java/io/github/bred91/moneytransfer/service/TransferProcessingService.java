@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +23,7 @@ public class TransferProcessingService {
     private final AccountRepository accountRepository;
 
     @Transactional(timeout = 10)
-    public void processTransfer(String transactionId, Long fromId, Long toId, BigDecimal amount) {
+    public void processTransfer(String transactionId, UUID fromId, UUID toId, BigDecimal amount) {
 
         // Idempotency check
         if (transferLogService.isAlreadyPresent(transactionId)) {
@@ -32,8 +33,9 @@ public class TransferProcessingService {
 
         TransferLogEntity logEntry = transferLogService.saveReceived(transactionId, fromId, toId, amount);
 
-        // Lock (Pessimistically) both accounts
-        // To avoid deadlocks, the lock is in consistent order by id
+        // Lock (pessimistically) both accounts.
+        // To avoid deadlocks, the database acquires the locks in a consistent order (by id).
+        // Java and PostgreSQL order UUIDs differently, so accounts are matched by id, not by position.
         List<AccountEntity> accounts = accountRepository.findAllByIdForUpdateOrdered(Set.of(fromId, toId));
 
         // Check if both accounts exist
@@ -43,11 +45,8 @@ public class TransferProcessingService {
             return;
         }
 
-        AccountEntity lower = accounts.get(0);
-        AccountEntity higher = accounts.get(1);
-
-        AccountEntity from = fromId < toId ? lower : higher;
-        AccountEntity to = fromId < toId ? higher : lower;
+        AccountEntity from = accounts.get(0).getId().equals(fromId) ? accounts.get(0) : accounts.get(1);
+        AccountEntity to = from == accounts.get(0) ? accounts.get(1) : accounts.get(0);
 
         // Check if source account is active
         if (!AccountStatusEnum.ACTIVE.equals(from.getStatus())) {

@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import lombok.*;
 import io.github.bred91.moneytransfer.enumeration.AccountStatusEnum;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 import java.time.LocalDateTime;
 
 @Entity
@@ -18,8 +20,9 @@ import java.time.LocalDateTime;
 @Builder
 public class AccountEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
+    private UUID id;
 
     @Column(nullable = false)
     private String ownerName;

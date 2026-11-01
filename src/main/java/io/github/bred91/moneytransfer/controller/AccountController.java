@@ -3,7 +3,6 @@ package io.github.bred91.moneytransfer.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import io.github.bred91.moneytransfer.dto.AccountResponseDTO;
 import io.github.bred91.moneytransfer.dto.CreateAccountRequestDTO;
@@ -13,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
+import java.util.UUID;
 
 @Tag(name = "Accounts", description = "Account management endpoints")
 @RestController
@@ -36,7 +36,7 @@ public class AccountController {
 
     @Operation(summary = "Get an account", description = "Retrieves an account by its ID")
     @GetMapping("/{id}")
-    public ResponseEntity<AccountResponseDTO> get(@PathVariable @Min(1) Long id) {
+    public ResponseEntity<AccountResponseDTO> get(@PathVariable UUID id) {
         return ResponseEntity.ok(accountService.getAccount(id));
     }
 

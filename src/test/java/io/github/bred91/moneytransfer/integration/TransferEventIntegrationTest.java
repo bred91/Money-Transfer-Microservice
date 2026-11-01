@@ -25,6 +25,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.awaitility.Awaitility.await;
@@ -257,15 +258,16 @@ class TransferEventIntegrationTest {
         }
 
         @Test
-        @DisplayName("Should reject transfer with invalid account IDs")
-        void shouldRejectTransferWithInvalidAccountIds() throws Exception {
-            TransferEventDTO event = new TransferEventDTO();
-            event.setTransactionId("tx-invalid-id");
-            event.setFromAccountId(0L);
-            event.setToAccountId(2L);
-            event.setAmount(new BigDecimal("100.00"));
-
-            sendTransferEvent(event);
+        @DisplayName("Should discard transfer with a malformed account ID")
+        void shouldDiscardTransferWithMalformedAccountId() throws Exception {
+            kafkaTemplate.send(
+                    MessageBuilder
+                            .withPayload("""
+                                    {"transactionId":"tx-invalid-id","fromAccountId":"not-a-uuid","toAccountId":"%s","amount":100.00}
+                                    """.formatted(UUID.randomUUID()))
+                            .setHeader(KafkaHeaders.TOPIC, "money-transfers")
+                            .build()
+            ).get(5, TimeUnit.SECONDS);
 
             Thread.sleep(1000);
 
@@ -411,7 +413,7 @@ class TransferEventIntegrationTest {
             TransferEventDTO event = new TransferEventDTO();
             event.setTransactionId("tx-not-found");
             event.setFromAccountId(fromAccount.getId());
-            event.setToAccountId(9999L);
+            event.setToAccountId(UUID.randomUUID());
             event.setAmount(new BigDecimal("100.00"));
 
             sendTransferEvent(event);

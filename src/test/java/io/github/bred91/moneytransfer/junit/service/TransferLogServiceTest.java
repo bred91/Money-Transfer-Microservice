@@ -1,5 +1,7 @@
 package io.github.bred91.moneytransfer.junit.service;
 
+import static io.github.bred91.moneytransfer.TestIds.id;
+
 import io.github.bred91.moneytransfer.entity.TransferLogEntity;
 import io.github.bred91.moneytransfer.enumeration.TransactionStatusEnum;
 import io.github.bred91.moneytransfer.repository.TransferLogRepository;
@@ -49,23 +51,23 @@ class TransferLogServiceTest {
     void saveReceived_shouldPopulateFieldsWithReceivedStatusAndReturnSavedEntity() {
         when(transferLogRepository.save(any(TransferLogEntity.class))).thenAnswer(invocation -> {
             TransferLogEntity e = invocation.getArgument(0);
-            e.setId(42L);
+            e.setId(id(42));
             return e;
         });
 
-        TransferLogEntity saved = transferLogService.saveReceived("tx-save", 1L, 2L, new BigDecimal("99.99"));
+        TransferLogEntity saved = transferLogService.saveReceived("tx-save", id(1), id(2), new BigDecimal("99.99"));
 
         ArgumentCaptor<TransferLogEntity> captor = ArgumentCaptor.forClass(TransferLogEntity.class);
         verify(transferLogRepository).save(captor.capture());
 
         TransferLogEntity toSave = captor.getValue();
         assertThat(toSave.getTransactionId()).isEqualTo("tx-save");
-        assertThat(toSave.getFromAccountId()).isEqualTo(1L);
-        assertThat(toSave.getToAccountId()).isEqualTo(2L);
+        assertThat(toSave.getFromAccountId()).isEqualTo(id(1));
+        assertThat(toSave.getToAccountId()).isEqualTo(id(2));
         assertThat(toSave.getAmount()).isEqualByComparingTo("99.99");
         assertThat(toSave.getStatus()).isEqualTo(TransactionStatusEnum.RECEIVED);
 
-        assertThat(saved.getId()).isEqualTo(42L);
+        assertThat(saved.getId()).isEqualTo(id(42));
         assertThat(saved.getStatus()).isEqualTo(TransactionStatusEnum.RECEIVED);
     }
 
