@@ -47,7 +47,6 @@ class TransferEventIntegrationTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create");
         registry.add("spring.docker.compose.enabled", () -> "false");
         registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
         registry.add("app.kafka.topic.transfer", () -> "money-transfers");

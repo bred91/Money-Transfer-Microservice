@@ -13,6 +13,7 @@ Spring Boot microservice for account management and asynchronous, event-driven m
 - Spring for Apache Kafka 4 (Jackson 3)
 - Apache Kafka 4 (KRaft mode, no ZooKeeper)
 - PostgreSQL 18
+- Flyway (database migrations)
 - springdoc-openapi 3 (Swagger UI)
 - Docker / Docker Compose
 - JUnit 6
@@ -99,7 +100,8 @@ For asynchronous money transfers, Kafka acts as the entry point and the listener
 - `src/main/java/io/github/bred91/moneytransfer/kafka`: Kafka consumer components that receive transfer events and forward them to the business layer.
 - `src/main/java/io/github/bred91/moneytransfer/advice`: centralized exception handling for API Bad Request errors.
 - `src/main/java/io/github/bred91/moneytransfer/enumeration`: domain enums representing application states and statuses.
-- `src/main/resources/static`: SQL helper scripts used for manual checks and sample data.
+- `src/main/resources/db/migration`: Flyway migrations defining the database schema.
+- `scripts`: optional SQL helper scripts (sample data for manual testing).
 - `src/test/java`: unit and integration tests covering the main application layers.
 
 ## Kafka transfer processing
@@ -136,17 +138,23 @@ The application uses PostgreSQL and persists data in two tables:
 - `accounts`: stores the account owner, balance, status (`ACTIVE`, `FROZEN`, `CLOSED`), and timestamps.
 - `transfer_logs`: stores every consumed transfer event, its status (`RECEIVED`, `FAILED`, `SUCCESS`), and the failure reason when applicable.
 
-For local development the schema is managed by Hibernate with `ddl-auto: update`, which keeps the tables in sync with the entities without manual migrations.
-For production deployments this should be switched to `validate` (or `none`) together with a migration tool.
-The property is set in the `docker-compose.yml` file.
+The schema is versioned with **Flyway**: migrations live in `src/main/resources/db/migration` and are applied automatically at startup.
+Hibernate runs with `ddl-auto: validate`, so it never changes the schema and the application fails fast if the entities and the database diverge.
+Schema changes are made by adding a new migration (`V2__description.sql`, ...); migrations that have already been applied must never be edited.
 
-You can find some useful queries in the `src/main/resources/static` directory.
+The schema also enforces some invariants at database level, such as a non-negative account balance and a unique `transaction_id` per transfer log.
+
+Optional sample data for manual testing:
+```bash
+docker compose exec -T postgres psql -U my_user -d my_database < scripts/sample-data.sql
+```
 
 ## Key technical choices
 
 - **Spring Boot 4 + Java 25**: the latest LTS Java release on the current Spring generation.
 - **REST for account operations**: `create` and `get` are exposed through REST endpoints because they are straightforward to consume and easy to test. A `list` operation is also available to support the general workflow.
 - **Kafka for transfer processing**: money transfers are handled asynchronously through Kafka, decoupling event ingestion from business execution.
+- **Versioned schema with Flyway**: the database schema is defined by reviewed, versioned SQL migrations instead of being generated from the entities, making changes explicit and repeatable across environments.
 - **PostgreSQL as the real database**: chosen for durable persistence, transactional guarantees, and realistic production behavior; no in-memory database is used.
 - **Transactional transfer processing**: balance updates and the transfer log are written in a single database transaction, so a transfer is either fully applied or not applied at all.
 - **Idempotency by transaction ID**: each transfer event is keyed by `transactionId` to avoid double processing in case of retries or duplicate delivery.
@@ -177,5 +185,4 @@ Possible areas for future improvement:
 - Stronger validation for Kafka consumer messages (for example, using Protobuf or Avro schemas)
 - Better observability with metrics and tracing
 - Stronger API documentation and versioning
-- Database migrations (e.g. Flyway) instead of relying on schema auto-update
 - More resilience patterns for production traffic
