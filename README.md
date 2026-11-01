@@ -36,6 +36,7 @@ docker compose up -d --build
 ### Services exposed by default
 - Application: http://localhost:8080
 - Swagger UI: http://localhost:8080/swagger-ui/index.html
+- OpenAPI document: http://localhost:8080/v3/api-docs
 - PostgreSQL: localhost:5432
 - Kafka: localhost:9093 (from the host), kafka:9092 (inside the Docker network)
 
@@ -61,9 +62,32 @@ docker compose down -v     # also deletes the database volume
 
 ## API
 
+The full, interactive API documentation is available in Swagger UI (see above).
+
+### Versioning
+The REST API is versioned through the path segment after `/api`, using the native API versioning of Spring Framework 7:
+the current version is `v1` (e.g. `/api/v1/accounts`). Requests for an unsupported version are rejected with `400 Bad Request`.
+
+### Errors
+All errors are returned as [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457) with content type `application/problem+json`.
+Validation errors also include an `errors` object mapping each invalid field to its message:
+
+```json
+{
+  "title": "Validation failed",
+  "status": 400,
+  "detail": "The request contains invalid fields",
+  "instance": "/api/v1/accounts",
+  "errors": {
+    "ownerName": "Name is required",
+    "initialBalance": "Initial balance must not be negative"
+  }
+}
+```
+
 ### Create account
 
-`POST /api/accounts`
+`POST /api/v1/accounts`
 
 ```json
 {
@@ -76,12 +100,12 @@ docker compose down -v     # also deletes the database volume
 Returns `201 Created` with the new account and its `Location` header, or `400 Bad Request` if the payload is invalid.
 
 ### Retrieve account
-`GET /api/accounts/{id}`
+`GET /api/v1/accounts/{id}`
 
-Returns `200 OK` with the account, or `404 Not Found` if it does not exist.
+Returns `200 OK` with the account, `400 Bad Request` if the ID is not a valid UUID, or `404 Not Found` if it does not exist.
 
 ### List accounts
-`GET /api/accounts`
+`GET /api/v1/accounts`
 
 ## Project structure
 
@@ -98,7 +122,8 @@ For asynchronous money transfers, Kafka acts as the entry point and the listener
 - `src/main/java/io/github/bred91/moneytransfer/entity`: JPA entities mapped to database tables.
 - `src/main/java/io/github/bred91/moneytransfer/dto`: request/response objects and Kafka payloads used at the application boundary.
 - `src/main/java/io/github/bred91/moneytransfer/kafka`: Kafka consumer components that receive transfer events and forward them to the business layer.
-- `src/main/java/io/github/bred91/moneytransfer/advice`: centralized exception handling for API Bad Request errors.
+- `src/main/java/io/github/bred91/moneytransfer/advice`: centralized exception handling, rendering errors as Problem Details.
+- `src/main/java/io/github/bred91/moneytransfer/config`: application configuration (OpenAPI metadata).
 - `src/main/java/io/github/bred91/moneytransfer/enumeration`: domain enums representing application states and statuses.
 - `src/main/resources/db/migration`: Flyway migrations defining the database schema.
 - `scripts`: optional SQL helper scripts (sample data for manual testing).
@@ -152,6 +177,7 @@ docker compose exec -T postgres psql -U my_user -d my_database < scripts/sample-
 ## Key technical choices
 
 - **Spring Boot 4 + Java 25**: the latest LTS Java release on the current Spring generation.
+- **Versioned, documented REST contract**: native Spring Framework 7 API versioning (`/api/v1/...`), OpenAPI 3.1 documentation generated from annotated controllers and DTOs, and standard RFC 9457 error responses.
 - **REST for account operations**: `create` and `get` are exposed through REST endpoints because they are straightforward to consume and easy to test. A `list` operation is also available to support the general workflow.
 - **Kafka for transfer processing**: money transfers are handled asynchronously through Kafka, decoupling event ingestion from business execution.
 - **Versioned schema with Flyway**: the database schema is defined by reviewed, versioned SQL migrations instead of being generated from the entities, making changes explicit and repeatable across environments.
@@ -184,5 +210,5 @@ Possible areas for future improvement:
 - Better retry policy with a dead-letter queue
 - Stronger validation for Kafka consumer messages (for example, using Protobuf or Avro schemas)
 - Better observability with metrics and tracing
-- Stronger API documentation and versioning
+- AsyncAPI documentation for the Kafka transfer events
 - More resilience patterns for production traffic
