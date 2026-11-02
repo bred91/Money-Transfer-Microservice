@@ -28,7 +28,7 @@ import java.util.UUID;
 
 @Tag(name = "Accounts", description = "Account management")
 @RestController
-@RequestMapping(path = "/api/{version}/accounts", version = "v1", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/{version}/accounts", version = "v1", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @ApiResponse(responseCode = "400", description = "Malformed request or unsupported API version",
         content = @Content(mediaType = AccountController.PROBLEM_JSON, schema = @Schema(implementation = ProblemDetail.class)))

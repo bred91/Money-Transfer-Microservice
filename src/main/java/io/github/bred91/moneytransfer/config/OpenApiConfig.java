@@ -20,7 +20,7 @@ public class OpenApiConfig {
                         Money transfers are not exposed over REST: they are consumed asynchronously \
                         from the `money-transfers` Kafka topic.
 
-                        The API is versioned through the path segment after `/api` (e.g. `/api/v1/...`). \
+                        The API is versioned through the first path segment (e.g. `/v1/accounts`). \
                         Errors are returned as RFC 9457 Problem Details (`application/problem+json`).""")
                 .contact(new Contact()
                         .name("Raffaele Pane")

@@ -47,7 +47,7 @@ class AccountControllerTest {
     @Test
     void create_shouldReturn201WithLocationAndBody() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setRequestURI("/api/v1/accounts");
+        request.setRequestURI("/v1/accounts");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         CreateAccountRequestDTO req = new CreateAccountRequestDTO();
@@ -70,7 +70,7 @@ class AccountControllerTest {
         ResponseEntity<AccountResponseDTO> response = accountController.create(req);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getHeaders().getLocation()).hasToString("http://localhost/api/v1/accounts/" + id(1));
+        assertThat(response.getHeaders().getLocation()).hasToString("http://localhost/v1/accounts/" + id(1));
         assertThat(response.getBody()).isEqualTo(created);
 
         ArgumentCaptor<CreateAccountRequestDTO> captor = ArgumentCaptor.forClass(CreateAccountRequestDTO.class);

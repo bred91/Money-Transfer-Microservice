@@ -62,12 +62,12 @@ public class AccountIntegrationTest {
     @Test
     void fullFlow_listCreateRelistGetSingle() throws Exception {
         // 1) Read list first: expected empty
-        mockMvc.perform(get("/api/v1/accounts"))
+        mockMvc.perform(get("/v1/accounts"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
         // 2) Create one account
-        String createResponse = mockMvc.perform(post("/api/v1/accounts")
+        String createResponse = mockMvc.perform(post("/v1/accounts")
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
@@ -92,7 +92,7 @@ public class AccountIntegrationTest {
         String id = json.get("id").asString();
 
         // 3) Read list again: expected one account
-        mockMvc.perform(get("/api/v1/accounts"))
+        mockMvc.perform(get("/v1/accounts"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(id))
@@ -102,7 +102,7 @@ public class AccountIntegrationTest {
                 .andExpect(jsonPath("$[0].status").value(AccountStatusEnum.ACTIVE.toString()));
 
         // 4) Get the single account by ID
-        mockMvc.perform(get("/api/v1/accounts/{id}", id))
+        mockMvc.perform(get("/v1/accounts/{id}", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id))
                 .andExpect(jsonPath("$.ownerName").value("Mario"))
@@ -113,7 +113,7 @@ public class AccountIntegrationTest {
 
     @Test
     void create_shouldReturnProblemDetailWithFieldErrors_whenPayloadIsInvalid() throws Exception {
-        mockMvc.perform(post("/api/v1/accounts")
+        mockMvc.perform(post("/v1/accounts")
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
@@ -126,14 +126,14 @@ public class AccountIntegrationTest {
                 .andExpect(content().contentType(APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.title").value("Validation failed"))
-                .andExpect(jsonPath("$.instance").value("/api/v1/accounts"))
+                .andExpect(jsonPath("$.instance").value("/v1/accounts"))
                 .andExpect(jsonPath("$.errors.ownerName").value("Name is required"))
                 .andExpect(jsonPath("$.errors.initialBalance").value("Initial balance must not be negative"));
     }
 
     @Test
     void get_shouldReturnProblemDetail_whenAccountDoesNotExist() throws Exception {
-        mockMvc.perform(get("/api/v1/accounts/{id}", UUID.randomUUID()))
+        mockMvc.perform(get("/v1/accounts/{id}", UUID.randomUUID()))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(404))
@@ -142,7 +142,7 @@ public class AccountIntegrationTest {
 
     @Test
     void get_shouldReturnBadRequest_whenIdIsNotAUuid() throws Exception {
-        mockMvc.perform(get("/api/v1/accounts/{id}", "not-a-uuid"))
+        mockMvc.perform(get("/v1/accounts/{id}", "not-a-uuid"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentType(APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(400));
@@ -150,7 +150,7 @@ public class AccountIntegrationTest {
 
     @Test
     void list_shouldReturnBadRequest_whenApiVersionIsNotSupported() throws Exception {
-        mockMvc.perform(get("/api/v2/accounts"))
+        mockMvc.perform(get("/v2/accounts"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentType(APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(400));
@@ -162,7 +162,7 @@ public class AccountIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title").value("Money Transfer Service API"))
                 .andExpect(jsonPath("$.info.version").value("v1"))
-                .andExpect(jsonPath("$.paths['/api/v1/accounts'].post.responses['201']").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/accounts/{id}'].get.responses['404']").exists());
+                .andExpect(jsonPath("$.paths['/v1/accounts'].post.responses['201']").exists())
+                .andExpect(jsonPath("$.paths['/v1/accounts/{id}'].get.responses['404']").exists());
     }
 }
