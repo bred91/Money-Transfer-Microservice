@@ -61,12 +61,6 @@ public class TransferEventListener {
             return false;
         }
 
-        // Check if account IDs are valid
-        if (payload.getFromAccountId() <= 0 || payload.getToAccountId() <= 0) {
-            log.error("Invalid transfer: invalid account IDs for transaction {}", payload.getTransactionId());
-            return false;
-        }
-
         // Check if source and destination accounts are the same
         if (payload.getFromAccountId().equals(payload.getToAccountId())) {
             log.error("Invalid transfer: source and destination accounts are the same for transaction {}", payload.getTransactionId());

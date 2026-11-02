@@ -10,12 +10,13 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface AccountRepository extends JpaRepository<AccountEntity, Long> {
+public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from AccountEntity a where a.id in :ids order by a.id asc")
-    List<AccountEntity> findAllByIdForUpdateOrdered(@Param("ids") Collection<Long> ids);
+    List<AccountEntity> findAllByIdForUpdateOrdered(@Param("ids") Collection<UUID> ids);
 }
 

@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -34,7 +34,8 @@ public class AccountService {
                     .status(AccountStatusEnum.ACTIVE)
                     .balance(accountRequest.getInitialBalance())
                     .build();
-            account = accountRepository.save(account);
+            // Flush immediately: the INSERT populates the creation timestamps returned in the response
+            account = accountRepository.saveAndFlush(account);
 
             log.info("Account created successfully with ID: {} for owner: {} {}",
                     account.getId(), account.getOwnerName(), account.getOwnerSurname());
@@ -48,7 +49,7 @@ public class AccountService {
     }
 
     @Transactional(readOnly = true)
-    public AccountResponseDTO getAccount(Long id) {
+    public AccountResponseDTO getAccount(UUID id) {
         log.debug("Fetching account with ID: {}", id);
 
         try {
@@ -71,7 +72,7 @@ public class AccountService {
             List<AccountResponseDTO> accounts = accountRepository.findAll()
                     .stream()
                     .map(this::toResponseDTO)
-                    .collect(Collectors.toList());
+                    .toList();
 
             log.debug("Retrieved {} accounts", accounts.size());
             return accounts;

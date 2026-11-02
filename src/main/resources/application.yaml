@@ -1,6 +1,15 @@
 spring:
   application:
     name: money-transfer-service
+  mvc:
+    apiversion:
+      # API version taken from the first path segment (e.g. /v1/accounts -> version 1)
+      use:
+        path-segment: 0
+  jpa:
+    hibernate:
+      # The schema is owned by Flyway (src/main/resources/db/migration); Hibernate only checks it matches the entities
+      ddl-auto: validate
   kafka:
     bootstrap-servers: kafka:9092
     consumer:

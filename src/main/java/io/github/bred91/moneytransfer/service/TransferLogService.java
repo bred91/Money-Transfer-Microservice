@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +23,7 @@ public class TransferLogService {
         return transferLogRepository.findByTransactionId(transactionId).isPresent();
     }
 
-    public TransferLogEntity saveReceived(String transactionId, Long fromId, Long toId, BigDecimal amount) {
+    public TransferLogEntity saveReceived(String transactionId, UUID fromId, UUID toId, BigDecimal amount) {
         return transferLogRepository.save(TransferLogEntity.builder()
                 .transactionId(transactionId)
                 .fromAccountId(fromId)
