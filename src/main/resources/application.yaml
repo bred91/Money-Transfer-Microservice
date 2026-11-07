@@ -16,16 +16,22 @@ spring:
       group-id: ${spring.application.name}
       # Never skip transfers published before the consumer group first joined (duplicates are handled idempotently)
       auto-offset-reset: earliest
-      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
-      properties:
-        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
-        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
-        spring.json.trusted.packages: "io.github.bred91.moneytransfer.dto"
-        spring.json.value.default.type: io.github.bred91.moneytransfer.dto.TransferEventDTO
-        spring.json.use.type.headers: false
+      # Values are read as raw bytes and converted to the listener payload by the message converter (KafkaConfig),
+      # so a record that cannot be processed is forwarded unchanged to the dead-letter topic
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+    producer:
+      # The only producer is the dead-letter publisher, which forwards the original record bytes
+      value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
 
 app:
   kafka:
     topic:
       transfer: money-transfers
+      transfer-dead-letter: money-transfers.DLT
+    # Retries of transfers failing with a transient error (e.g. database unavailable) before they are dead-lettered.
+    # Malformed or invalid events are never retried.
+    retry:
+      initial-interval: 1s
+      multiplier: 2
+      max-interval: 30s
+      max-retries: 6
