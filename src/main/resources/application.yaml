@@ -13,7 +13,7 @@ spring:
   kafka:
     bootstrap-servers: kafka:9092
     consumer:
-      group-id: money-transfer-group
+      group-id: ${spring.application.name}
       # Never skip transfers published before the consumer group first joined (duplicates are handled idempotently)
       auto-offset-reset: earliest
       key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
