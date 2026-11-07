@@ -17,7 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -68,8 +68,8 @@ class AccountServiceTest {
                 .ownerName("Alice")
                 .ownerSurname("Smith")
                 .balance(new BigDecimal("250.00"))
-                .createdAt(LocalDateTime.of(2026, 2, 1, 9, 0))
-                .lastModifiedAt(LocalDateTime.of(2026, 2, 1, 9, 0))
+                .createdAt(Instant.parse("2026-02-01T09:00:00Z"))
+                .lastModifiedAt(Instant.parse("2026-02-01T09:00:00Z"))
                 .build();
 
         when(accountRepository.findById(id(2))).thenReturn(Optional.of(entity));
@@ -99,8 +99,8 @@ class AccountServiceTest {
     @Test
     void listAccounts_shouldReturnMappedDtos() {
         List<AccountEntity> entities = List.of(
-                AccountEntity.builder().id(id(1)).ownerName("A").ownerSurname("One").balance(new BigDecimal("10.00")).createdAt(LocalDateTime.now()).lastModifiedAt(LocalDateTime.now()).build(),
-                AccountEntity.builder().id(id(2)).ownerName("B").ownerSurname("Two").balance(new BigDecimal("20.00")).createdAt(LocalDateTime.now()).lastModifiedAt(LocalDateTime.now()).build()
+                AccountEntity.builder().id(id(1)).ownerName("A").ownerSurname("One").balance(new BigDecimal("10.00")).createdAt(Instant.now()).lastModifiedAt(Instant.now()).build(),
+                AccountEntity.builder().id(id(2)).ownerName("B").ownerSurname("Two").balance(new BigDecimal("20.00")).createdAt(Instant.now()).lastModifiedAt(Instant.now()).build()
         );
 
         when(accountRepository.findAll()).thenReturn(entities);

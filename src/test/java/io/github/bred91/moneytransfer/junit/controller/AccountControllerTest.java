@@ -22,7 +22,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,8 +61,8 @@ class AccountControllerTest {
                 .ownerSurname("Doe")
                 .status(AccountStatusEnum.ACTIVE)
                 .balance(new BigDecimal("100.00"))
-                .createdAt(LocalDateTime.now())
-                .lastModifiedAt(LocalDateTime.now())
+                .createdAt(Instant.now())
+                .lastModifiedAt(Instant.now())
                 .build();
 
         when(accountService.createAccount(req)).thenReturn(created);
@@ -88,8 +88,8 @@ class AccountControllerTest {
                 .ownerSurname("Smith")
                 .status(AccountStatusEnum.ACTIVE)
                 .balance(new BigDecimal("100.00"))
-                .createdAt(LocalDateTime.now())
-                .lastModifiedAt(LocalDateTime.now())
+                .createdAt(Instant.now())
+                .lastModifiedAt(Instant.now())
                 .build();
 
         when(accountService.getAccount(id(2))).thenReturn(dto);
