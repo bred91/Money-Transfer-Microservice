@@ -3,7 +3,6 @@ package io.github.bred91.moneytransfer.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import io.github.bred91.moneytransfer.entity.AccountEntity;
-import io.github.bred91.moneytransfer.entity.TransferLogEntity;
 import io.github.bred91.moneytransfer.enumeration.AccountStatusEnum;
 import io.github.bred91.moneytransfer.repository.AccountRepository;
 import org.springframework.stereotype.Service;
@@ -22,6 +21,10 @@ public class TransferProcessingService {
     private final TransferLogService transferLogService;
     private final AccountRepository accountRepository;
 
+    /**
+     * Applies or rejects the transfer, and records its outcome in the same transaction: either both the balance
+     * updates and the transfer log are committed, or neither is.
+     */
     @Transactional(timeout = 10)
     public void processTransfer(String transactionId, UUID fromId, UUID toId, BigDecimal amount) {
 
@@ -31,8 +34,6 @@ public class TransferProcessingService {
             return;
         }
 
-        TransferLogEntity logEntry = transferLogService.saveReceived(transactionId, fromId, toId, amount);
-
         // Lock (pessimistically) both accounts.
         // To avoid deadlocks, the database acquires the locks in a consistent order (by id).
         // Java and PostgreSQL order UUIDs differently, so accounts are matched by id, not by position.
@@ -41,7 +42,7 @@ public class TransferProcessingService {
         // Check if both accounts exist
         if (accounts.size() != 2) {
             log.error("One or both accounts not found for transaction {}", transactionId);
-            transferLogService.markFailed(logEntry, "One or both accounts not found");
+            transferLogService.recordFailure(transactionId, fromId, toId, amount, "One or both accounts not found");
             return;
         }
 
@@ -51,20 +52,20 @@ public class TransferProcessingService {
         // Check if source account is active
         if (!AccountStatusEnum.ACTIVE.equals(from.getStatus())) {
             log.warn("Source account {} is not active for transaction {}", fromId, transactionId);
-            transferLogService.markFailed(logEntry, "Source account is not active");
+            transferLogService.recordFailure(transactionId, fromId, toId, amount, "Source account is not active");
             return;
         }
         // Check if destination account is active
         if (!AccountStatusEnum.ACTIVE.equals(to.getStatus())) {
             log.warn("Destination account {} is not active for transaction {}", toId, transactionId);
-            transferLogService.markFailed(logEntry, "Destination account is not active");
+            transferLogService.recordFailure(transactionId, fromId, toId, amount, "Destination account is not active");
             return;
         }
 
         // Check if source account has sufficient funds
         if (from.getBalance().compareTo(amount) < 0) {
             log.error("Insufficient funds for transaction {}", transactionId);
-            transferLogService.markFailed(logEntry, "Insufficient funds");
+            transferLogService.recordFailure(transactionId, fromId, toId, amount, "Insufficient funds");
             return;
         }
 
@@ -73,9 +74,8 @@ public class TransferProcessingService {
 
         accountRepository.saveAll(List.of(from, to));
 
-        transferLogService.markSuccess(logEntry);
+        transferLogService.recordSuccess(transactionId, fromId, toId, amount);
 
         log.info("Processed transfer {} from {} to {} amount {}", transactionId, fromId, toId, amount);
     }
 }
-

@@ -185,7 +185,7 @@ The application uses PostgreSQL and persists data in two tables:
 - `accounts`: stores the account owner, balance, status (`ACTIVE`, `FROZEN`, `CLOSED`), and timestamps.
 
 All timestamps are stored as `TIMESTAMP WITH TIME ZONE`, so they denote the same instant whatever the time zone of the application or of the database session.
-- `transfer_logs`: stores every consumed transfer event, its status (`RECEIVED`, `FAILED`, `SUCCESS`), and the failure reason when applicable.
+- `transfer_logs`: stores the outcome of every processed transfer event: its status (`SUCCESS` or `FAILED`) and, for failed transfers, the reason. A log entry is written in the same transaction as the balance updates, so it is only ever stored with its final status.
 
 The schema is versioned with **Flyway**: migrations live in `src/main/resources/db/migration` and are applied automatically at startup.
 Hibernate runs with `ddl-auto: validate`, so it never changes the schema and the application fails fast if the entities and the database diverge.

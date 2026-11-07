@@ -1,20 +1,24 @@
 package io.github.bred91.moneytransfer.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import io.github.bred91.moneytransfer.entity.TransferLogEntity;
 import io.github.bred91.moneytransfer.enumeration.TransactionStatusEnum;
 import io.github.bred91.moneytransfer.repository.TransferLogRepository;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Stores the outcome of each processed transfer.
+ * <p>
+ * A log entry is written once, with its final status, in the transaction that applies (or rejects) the transfer.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
-@Slf4j
 public class TransferLogService {
 
     private final TransferLogRepository transferLogRepository;
@@ -23,24 +27,23 @@ public class TransferLogService {
         return transferLogRepository.findByTransactionId(transactionId).isPresent();
     }
 
-    public TransferLogEntity saveReceived(String transactionId, UUID fromId, UUID toId, BigDecimal amount) {
-        return transferLogRepository.save(TransferLogEntity.builder()
+    public void recordSuccess(String transactionId, UUID fromId, UUID toId, BigDecimal amount) {
+        save(transactionId, fromId, toId, amount, TransactionStatusEnum.SUCCESS, null);
+    }
+
+    public void recordFailure(String transactionId, UUID fromId, UUID toId, BigDecimal amount, String reason) {
+        save(transactionId, fromId, toId, amount, TransactionStatusEnum.FAILED, reason);
+    }
+
+    private void save(String transactionId, UUID fromId, UUID toId, BigDecimal amount,
+                      TransactionStatusEnum status, @Nullable String failedReason) {
+        transferLogRepository.save(TransferLogEntity.builder()
                 .transactionId(transactionId)
                 .fromAccountId(fromId)
                 .toAccountId(toId)
                 .amount(amount)
-                .status(TransactionStatusEnum.RECEIVED)
+                .status(status)
+                .failedReason(failedReason)
                 .build());
-    }
-
-    public void markFailed(TransferLogEntity logEntry, String message) {
-        logEntry.setStatus(TransactionStatusEnum.FAILED);
-        logEntry.setFailedReason(message);
-        transferLogRepository.save(logEntry);
-    }
-
-    public void markSuccess(TransferLogEntity logEntry) {
-        logEntry.setStatus(TransactionStatusEnum.SUCCESS);
-        transferLogRepository.save(logEntry);
     }
 }

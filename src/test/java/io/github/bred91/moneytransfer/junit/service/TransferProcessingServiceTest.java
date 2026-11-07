@@ -3,7 +3,6 @@ package io.github.bred91.moneytransfer.junit.service;
 import static io.github.bred91.moneytransfer.TestIds.id;
 
 import io.github.bred91.moneytransfer.entity.AccountEntity;
-import io.github.bred91.moneytransfer.entity.TransferLogEntity;
 import io.github.bred91.moneytransfer.enumeration.AccountStatusEnum;
 import io.github.bred91.moneytransfer.repository.AccountRepository;
 import io.github.bred91.moneytransfer.service.TransferLogService;
@@ -41,29 +40,26 @@ public class TransferProcessingServiceTest {
         processingService.processTransfer("tx-already", id(1), id(2), new BigDecimal("10.00"));
 
         verify(transferLogService).isAlreadyPresent("tx-already");
-        verify(transferLogService, never()).saveReceived(any(), any(), any(), any());
+        verifyNoMoreInteractions(transferLogService);
         verifyNoInteractions(accountRepository);
     }
 
     @Test
-    void processTransfer_shouldMarkFailedWhenAccountsNotFound() {
+    void processTransfer_shouldRecordFailureWhenAccountsNotFound() {
         when(transferLogService.isAlreadyPresent("tx-missing")).thenReturn(false);
-        TransferLogEntity logEntry = TransferLogEntity.builder().transactionId("tx-missing").build();
-        when(transferLogService.saveReceived("tx-missing", id(1), id(2), new BigDecimal("5.00"))).thenReturn(logEntry);
         when(accountRepository.findAllByIdForUpdateOrdered(any())).thenReturn(List.of()); // none found
 
         processingService.processTransfer("tx-missing", id(1), id(2), new BigDecimal("5.00"));
 
-        verify(transferLogService).markFailed(logEntry, "One or both accounts not found");
+        verify(transferLogService).recordFailure("tx-missing", id(1), id(2), new BigDecimal("5.00"), "One or both accounts not found");
+        verify(transferLogService, never()).recordSuccess(any(), any(), any(), any());
         verify(accountRepository).findAllByIdForUpdateOrdered(any());
         verify(accountRepository, never()).saveAll(any());
     }
 
     @Test
-    void processTransfer_shouldMarkFailedWhenSourceAccountNotActive() {
+    void processTransfer_shouldRecordFailureWhenSourceAccountNotActive() {
         when(transferLogService.isAlreadyPresent("tx-src-inactive")).thenReturn(false);
-        TransferLogEntity logEntry = TransferLogEntity.builder().transactionId("tx-src-inactive").build();
-        when(transferLogService.saveReceived(any(), any(), any(), any())).thenReturn(logEntry);
 
         AccountEntity a1 = AccountEntity.builder().id(id(1)).status(AccountStatusEnum.FROZEN).balance(new BigDecimal("100.00")).build();
         AccountEntity a2 = AccountEntity.builder().id(id(2)).status(AccountStatusEnum.ACTIVE).balance(new BigDecimal("50.00")).build();
@@ -71,15 +67,14 @@ public class TransferProcessingServiceTest {
 
         processingService.processTransfer("tx-src-inactive", id(1), id(2), new BigDecimal("10.00"));
 
-        verify(transferLogService).markFailed(logEntry, "Source account is not active");
+        verify(transferLogService).recordFailure("tx-src-inactive", id(1), id(2), new BigDecimal("10.00"), "Source account is not active");
+        verify(transferLogService, never()).recordSuccess(any(), any(), any(), any());
         verify(accountRepository, never()).saveAll(any());
     }
 
     @Test
-    void processTransfer_shouldMarkFailedWhenDestinationAccountNotActive() {
+    void processTransfer_shouldRecordFailureWhenDestinationAccountNotActive() {
         when(transferLogService.isAlreadyPresent("tx-dest-inactive")).thenReturn(false);
-        TransferLogEntity logEntry = TransferLogEntity.builder().transactionId("tx-dest-inactive").build();
-        when(transferLogService.saveReceived(any(), any(), any(), any())).thenReturn(logEntry);
 
         AccountEntity a1 = AccountEntity.builder().id(id(1)).status(AccountStatusEnum.ACTIVE).balance(new BigDecimal("100.00")).build();
         AccountEntity a2 = AccountEntity.builder().id(id(2)).status(AccountStatusEnum.CLOSED).balance(new BigDecimal("50.00")).build();
@@ -87,15 +82,14 @@ public class TransferProcessingServiceTest {
 
         processingService.processTransfer("tx-dest-inactive", id(1), id(2), new BigDecimal("10.00"));
 
-        verify(transferLogService).markFailed(logEntry, "Destination account is not active");
+        verify(transferLogService).recordFailure("tx-dest-inactive", id(1), id(2), new BigDecimal("10.00"), "Destination account is not active");
+        verify(transferLogService, never()).recordSuccess(any(), any(), any(), any());
         verify(accountRepository, never()).saveAll(any());
     }
 
     @Test
-    void processTransfer_shouldMarkFailedWhenInsufficientFunds() {
+    void processTransfer_shouldRecordFailureWhenInsufficientFunds() {
         when(transferLogService.isAlreadyPresent("tx-insufficient")).thenReturn(false);
-        TransferLogEntity logEntry = TransferLogEntity.builder().transactionId("tx-insufficient").build();
-        when(transferLogService.saveReceived(any(), any(), any(), any())).thenReturn(logEntry);
 
         AccountEntity from = AccountEntity.builder().id(id(1)).status(AccountStatusEnum.ACTIVE).balance(new BigDecimal("5.00")).build();
         AccountEntity to = AccountEntity.builder().id(id(2)).status(AccountStatusEnum.ACTIVE).balance(new BigDecimal("10.00")).build();
@@ -103,15 +97,14 @@ public class TransferProcessingServiceTest {
 
         processingService.processTransfer("tx-insufficient", id(1), id(2), new BigDecimal("20.00"));
 
-        verify(transferLogService).markFailed(logEntry, "Insufficient funds");
+        verify(transferLogService).recordFailure("tx-insufficient", id(1), id(2), new BigDecimal("20.00"), "Insufficient funds");
+        verify(transferLogService, never()).recordSuccess(any(), any(), any(), any());
         verify(accountRepository, never()).saveAll(any());
     }
 
     @Test
-    void processTransfer_shouldDebitAndCreditAndMarkSuccess_whenSourceIsFirstInLockOrder() {
+    void processTransfer_shouldDebitAndCreditAndRecordSuccess_whenSourceIsFirstInLockOrder() {
         when(transferLogService.isAlreadyPresent("tx-success-low")).thenReturn(false);
-        TransferLogEntity logEntry = TransferLogEntity.builder().transactionId("tx-success-low").build();
-        when(transferLogService.saveReceived(any(), any(), any(), any())).thenReturn(logEntry);
         when(accountRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         AccountEntity first = AccountEntity.builder().id(id(1)).status(AccountStatusEnum.ACTIVE).balance(new BigDecimal("100.00")).build();
@@ -130,14 +123,12 @@ public class TransferProcessingServiceTest {
         assertThat(savedFrom.getBalance()).isEqualByComparingTo(new BigDecimal("70.00"));
         assertThat(savedTo.getBalance()).isEqualByComparingTo(new BigDecimal("50.00"));
 
-        verify(transferLogService).markSuccess(logEntry);
+        verify(transferLogService).recordSuccess("tx-success-low", id(1), id(2), new BigDecimal("30.00"));
     }
 
     @Test
-    void processTransfer_shouldDebitAndCreditAndMarkSuccess_whenSourceIsSecondInLockOrder() {
+    void processTransfer_shouldDebitAndCreditAndRecordSuccess_whenSourceIsSecondInLockOrder() {
         when(transferLogService.isAlreadyPresent("tx-success-high")).thenReturn(false);
-        TransferLogEntity logEntry = TransferLogEntity.builder().transactionId("tx-success-high").build();
-        when(transferLogService.saveReceived(any(), any(), any(), any())).thenReturn(logEntry);
         when(accountRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Repository returns accounts in database lock order; the source account comes second here
@@ -158,6 +149,6 @@ public class TransferProcessingServiceTest {
         assertThat(savedFrom.getBalance()).isEqualByComparingTo(new BigDecimal("140.00"));
         assertThat(savedTo.getBalance()).isEqualByComparingTo(new BigDecimal("110.00"));
 
-        verify(transferLogService).markSuccess(logEntry);
+        verify(transferLogService).recordSuccess("tx-success-high", id(5), id(2), new BigDecimal("60.00"));
     }
 }
