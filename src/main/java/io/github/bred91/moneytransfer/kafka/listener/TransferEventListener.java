@@ -17,7 +17,7 @@ public class TransferEventListener {
 
     private final TransferProcessingService processingService;
 
-    @KafkaListener(topics = "${app.kafka.topic.transfer}", groupId = "${spring.application.name}")
+    @KafkaListener(topics = "${app.kafka.topic.transfer}")
     public void onMessage(TransferEventDTO payload) {
 
         // Skip null payloads
