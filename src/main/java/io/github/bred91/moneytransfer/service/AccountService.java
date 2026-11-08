@@ -15,6 +15,12 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Account operations.
+ * <p>
+ * Failures are not logged here: they propagate to {@link io.github.bred91.moneytransfer.advice.ApiExceptionHandler},
+ * which logs unexpected errors once. Owner names are personal data and are never logged.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -24,62 +30,37 @@ public class AccountService {
 
     @Transactional
     public AccountResponseDTO createAccount(CreateAccountRequestDTO accountRequest) {
-        log.info("Creating new account for owner: {} {}",
-                accountRequest.getOwnerName(), accountRequest.getOwnerSurname());
+        AccountEntity account = AccountEntity.builder()
+                .ownerName(accountRequest.getOwnerName())
+                .ownerSurname(accountRequest.getOwnerSurname())
+                .status(AccountStatusEnum.ACTIVE)
+                .balance(accountRequest.getInitialBalance())
+                .build();
+        // Flush immediately: the INSERT populates the creation timestamps returned in the response
+        account = accountRepository.saveAndFlush(account);
 
-        try {
-            AccountEntity account = AccountEntity.builder()
-                    .ownerName(accountRequest.getOwnerName())
-                    .ownerSurname(accountRequest.getOwnerSurname())
-                    .status(AccountStatusEnum.ACTIVE)
-                    .balance(accountRequest.getInitialBalance())
-                    .build();
-            // Flush immediately: the INSERT populates the creation timestamps returned in the response
-            account = accountRepository.saveAndFlush(account);
-
-            log.info("Account created successfully with ID: {} for owner: {} {}",
-                    account.getId(), account.getOwnerName(), account.getOwnerSurname());
-
-            return toResponseDTO(account);
-        } catch (Exception e) {
-            log.error("Failed to create account for owner: {} {}",
-                    accountRequest.getOwnerName(), accountRequest.getOwnerSurname(), e);
-            throw e;
-        }
+        log.info("Created account {}", account.getId());
+        return toResponseDTO(account);
     }
 
     @Transactional(readOnly = true)
     public AccountResponseDTO getAccount(UUID id) {
-        log.debug("Fetching account with ID: {}", id);
+        log.debug("Fetching account {}", id);
 
-        try {
-            AccountEntity account = accountRepository.findById(id)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
-
-            log.debug("Account retrieved successfully with ID: {}", id);
-            return toResponseDTO(account);
-        } catch (Exception e) {
-            log.error("Error retrieving account with ID: {}", id, e);
-            throw e;
-        }
+        AccountEntity account = accountRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
+        return toResponseDTO(account);
     }
 
     @Transactional(readOnly = true)
     public List<AccountResponseDTO> listAccounts() {
-        log.debug("Listing all accounts");
+        List<AccountResponseDTO> accounts = accountRepository.findAll()
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
 
-        try {
-            List<AccountResponseDTO> accounts = accountRepository.findAll()
-                    .stream()
-                    .map(this::toResponseDTO)
-                    .toList();
-
-            log.debug("Retrieved {} accounts", accounts.size());
-            return accounts;
-        } catch (Exception e) {
-            log.error("Error retrieving accounts list", e);
-            throw e;
-        }
+        log.debug("Listed {} accounts", accounts.size());
+        return accounts;
     }
 
     private AccountResponseDTO toResponseDTO(AccountEntity account) {

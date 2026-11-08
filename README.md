@@ -210,7 +210,7 @@ docker compose exec -T postgres psql -U my_user -d my_database < scripts/sample-
 - **Retries and dead-letter topic**: transient failures are retried with exponential back-off, and events that are invalid or keep failing are forwarded unchanged to a dead-letter topic instead of being dropped (see [Error handling and dead-letter topic](#error-handling-and-dead-letter-topic)).
 - **Validation at the boundary**: request DTOs and Kafka payloads are validated with Bean Validation to reject malformed input before business logic runs. Amounts must fit the `NUMERIC(19, 2)` balance columns, so the database never has to round them.
 - **Docker-first local setup**: Docker Compose brings up the app, PostgreSQL, and Kafka together so the project can be started without extra local dependencies.
-- **Production-oriented logging**: the service logs key business events and failures to make troubleshooting and operational monitoring easier.
+- **Production-oriented logging**: the service logs key business events and failures to make troubleshooting and operational monitoring easier. Each unexpected error is logged once, with its stack trace, by a central handler (REST) or by the Kafka error handler, while expected outcomes such as a missing account are not logged as errors. Owner names are personal data and are never logged: accounts are identified by their ID.
 
 ## Assumptions
 
