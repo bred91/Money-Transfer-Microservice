@@ -70,6 +70,7 @@ the current version is `v1` (e.g. `/v1/accounts`). Requests for an unsupported v
 
 ### Errors
 All errors are returned as [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457) with content type `application/problem+json`.
+Unexpected errors are returned as a generic `500 Internal Server Error` problem, without internal details, and logged on the server.
 Validation errors also include an `errors` object mapping each invalid field to its message:
 
 ```json
