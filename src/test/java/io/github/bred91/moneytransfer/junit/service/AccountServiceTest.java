@@ -13,6 +13,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -27,7 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, OutputCaptureExtension.class})
 class AccountServiceTest {
 
     @Mock
@@ -59,6 +61,34 @@ class AccountServiceTest {
         ArgumentCaptor<AccountEntity> captor = ArgumentCaptor.forClass(AccountEntity.class);
         verify(accountRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getOwnerName()).isEqualTo("John");
+    }
+
+    @Test
+    void createAccount_shouldLogTheAccountIdButNotTheOwnerName(CapturedOutput output) {
+        CreateAccountRequestDTO req = new CreateAccountRequestDTO();
+        req.setOwnerName("Mario");
+        req.setOwnerSurname("Rossi");
+        req.setInitialBalance(new BigDecimal("100.00"));
+        when(accountRepository.saveAndFlush(any(AccountEntity.class))).thenAnswer(invocation -> {
+            AccountEntity e = invocation.getArgument(0);
+            e.setId(id(7));
+            return e;
+        });
+
+        accountService.createAccount(req);
+
+        assertThat(output).contains("Created account " + id(7))
+                .doesNotContain("Mario")
+                .doesNotContain("Rossi");
+    }
+
+    @Test
+    void getAccount_shouldNotLogAnErrorWhenMissing(CapturedOutput output) {
+        when(accountRepository.findById(id(404))).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> accountService.getAccount(id(404))).isInstanceOf(ResponseStatusException.class);
+
+        assertThat(output).doesNotContain("ERROR");
     }
 
     @Test

@@ -73,6 +73,7 @@ Timestamps are returned as ISO 8601 instants in UTC, with microsecond precision 
 
 ### Errors
 All errors are returned as [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457) with content type `application/problem+json`.
+Unexpected errors are returned as a generic `500 Internal Server Error` problem, without internal details, and logged on the server.
 Validation errors also include an `errors` object mapping each invalid field to its message:
 
 ```json
@@ -214,7 +215,7 @@ docker compose exec -T postgres psql -U my_user -d my_database < scripts/sample-
 - **Retries and dead-letter topic**: transient failures are retried with exponential back-off, and events that are invalid or keep failing are forwarded unchanged to a dead-letter topic instead of being dropped (see [Error handling and dead-letter topic](#error-handling-and-dead-letter-topic)).
 - **Validation at the boundary**: request DTOs and Kafka payloads are validated with Bean Validation to reject malformed input before business logic runs. Amounts must fit the `NUMERIC(19, 2)` balance columns, so the database never has to round them.
 - **Docker-first local setup**: Docker Compose brings up the app, PostgreSQL, and Kafka together so the project can be started without extra local dependencies.
-- **Production-oriented logging**: the service logs key business events and failures to make troubleshooting and operational monitoring easier.
+- **Production-oriented logging**: the service logs key business events and failures to make troubleshooting and operational monitoring easier. Each unexpected error is logged once, with its stack trace, by a central handler (REST) or by the Kafka error handler, while expected outcomes such as a missing account are not logged as errors. Owner names are personal data and are never logged: accounts are identified by their ID.
 
 ## Assumptions
 
