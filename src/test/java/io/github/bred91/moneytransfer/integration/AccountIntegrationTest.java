@@ -17,8 +17,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Instant;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -90,6 +92,10 @@ public class AccountIntegrationTest {
         // Extract generated ID from create response
         JsonNode json = objectMapper.readTree(createResponse);
         String id = json.get("id").asString();
+
+        // Timestamps are absolute instants with an explicit offset (e.g. 2026-11-07T17:55:50.123456Z)
+        assertDoesNotThrow(() -> Instant.parse(json.get("createdAt").asString()));
+        assertDoesNotThrow(() -> Instant.parse(json.get("lastModifiedAt").asString()));
 
         // 3) Read list again: expected one account
         mockMvc.perform(get("/v1/accounts"))

@@ -68,6 +68,9 @@ The full, interactive API documentation is available in Swagger UI (see above).
 The REST API is versioned through the first path segment, using the native API versioning of Spring Framework 7:
 the current version is `v1` (e.g. `/v1/accounts`). Requests for an unsupported version are rejected with `400 Bad Request`.
 
+### Timestamps
+Timestamps are returned as ISO 8601 instants in UTC, with microsecond precision (e.g. `2026-11-07T17:55:50.123456Z`).
+
 ### Errors
 All errors are returned as [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457) with content type `application/problem+json`.
 Validation errors also include an `errors` object mapping each invalid field to its message:
@@ -180,7 +183,9 @@ docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-s
 The application uses PostgreSQL and persists data in two tables:
 
 - `accounts`: stores the account owner, balance, status (`ACTIVE`, `FROZEN`, `CLOSED`), and timestamps.
-- `transfer_logs`: stores every consumed transfer event, its status (`RECEIVED`, `FAILED`, `SUCCESS`), and the failure reason when applicable.
+
+All timestamps are stored as `TIMESTAMP WITH TIME ZONE`, so they denote the same instant whatever the time zone of the application or of the database session.
+- `transfer_logs`: stores the outcome of every processed transfer event: its status (`SUCCESS` or `FAILED`) and, for failed transfers, the reason. A log entry is written in the same transaction as the balance updates, so it is only ever stored with its final status.
 
 The schema is versioned with **Flyway**: migrations live in `src/main/resources/db/migration` and are applied automatically at startup.
 Hibernate runs with `ddl-auto: validate`, so it never changes the schema and the application fails fast if the entities and the database diverge.

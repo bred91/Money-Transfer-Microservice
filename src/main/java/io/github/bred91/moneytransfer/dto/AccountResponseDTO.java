@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -29,9 +29,9 @@ public class AccountResponseDTO {
     @Schema(description = "Current balance", example = "123.45")
     private BigDecimal balance;
 
-    @Schema(description = "Creation timestamp")
-    private LocalDateTime createdAt;
+    @Schema(description = "Creation timestamp (ISO 8601, UTC)", example = "2026-11-07T17:55:50.123456Z")
+    private Instant createdAt;
 
-    @Schema(description = "Last modification timestamp")
-    private LocalDateTime lastModifiedAt;
+    @Schema(description = "Last modification timestamp (ISO 8601, UTC)", example = "2026-11-07T17:55:50.123456Z")
+    private Instant lastModifiedAt;
 }

@@ -48,70 +48,34 @@ class TransferLogServiceTest {
     }
 
     @Test
-    void saveReceived_shouldPopulateFieldsWithReceivedStatusAndReturnSavedEntity() {
-        when(transferLogRepository.save(any(TransferLogEntity.class))).thenAnswer(invocation -> {
-            TransferLogEntity e = invocation.getArgument(0);
-            e.setId(id(42));
-            return e;
-        });
+    void recordSuccess_shouldSaveLogWithSuccessStatusAndNoReason() {
+        transferLogService.recordSuccess("tx-success", id(1), id(2), new BigDecimal("99.99"));
 
-        TransferLogEntity saved = transferLogService.saveReceived("tx-save", id(1), id(2), new BigDecimal("99.99"));
-
-        ArgumentCaptor<TransferLogEntity> captor = ArgumentCaptor.forClass(TransferLogEntity.class);
-        verify(transferLogRepository).save(captor.capture());
-
-        TransferLogEntity toSave = captor.getValue();
-        assertThat(toSave.getTransactionId()).isEqualTo("tx-save");
-        assertThat(toSave.getFromAccountId()).isEqualTo(id(1));
-        assertThat(toSave.getToAccountId()).isEqualTo(id(2));
-        assertThat(toSave.getAmount()).isEqualByComparingTo("99.99");
-        assertThat(toSave.getStatus()).isEqualTo(TransactionStatusEnum.RECEIVED);
-
-        assertThat(saved.getId()).isEqualTo(id(42));
-        assertThat(saved.getStatus()).isEqualTo(TransactionStatusEnum.RECEIVED);
-    }
-
-    @Test
-    void markFailed_shouldSetStatusFailedAndSaveWithReason() {
-        TransferLogEntity entry = TransferLogEntity.builder()
-                .transactionId("tx-fail")
-                .status(TransactionStatusEnum.RECEIVED)
-                .build();
-
-        when(transferLogRepository.save(any(TransferLogEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        transferLogService.markFailed(entry, "insufficient funds");
-
-        ArgumentCaptor<TransferLogEntity> captor = ArgumentCaptor.forClass(TransferLogEntity.class);
-        verify(transferLogRepository).save(captor.capture());
-
-        TransferLogEntity saved = captor.getValue();
-        assertThat(saved.getStatus()).isEqualTo(TransactionStatusEnum.FAILED);
-        assertThat(saved.getFailedReason()).isEqualTo("insufficient funds");
-
-        // original instance should also be updated
-        assertThat(entry.getStatus()).isEqualTo(TransactionStatusEnum.FAILED);
-        assertThat(entry.getFailedReason()).isEqualTo("insufficient funds");
-    }
-
-    @Test
-    void markSuccess_shouldSetStatusSuccessAndSave() {
-        TransferLogEntity entry = TransferLogEntity.builder()
-                .transactionId("tx-success")
-                .status(TransactionStatusEnum.RECEIVED)
-                .build();
-
-        when(transferLogRepository.save(any(TransferLogEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        transferLogService.markSuccess(entry);
-
-        ArgumentCaptor<TransferLogEntity> captor = ArgumentCaptor.forClass(TransferLogEntity.class);
-        verify(transferLogRepository).save(captor.capture());
-
-        TransferLogEntity saved = captor.getValue();
+        TransferLogEntity saved = savedLog();
+        assertThat(saved.getTransactionId()).isEqualTo("tx-success");
+        assertThat(saved.getFromAccountId()).isEqualTo(id(1));
+        assertThat(saved.getToAccountId()).isEqualTo(id(2));
+        assertThat(saved.getAmount()).isEqualByComparingTo("99.99");
         assertThat(saved.getStatus()).isEqualTo(TransactionStatusEnum.SUCCESS);
+        assertThat(saved.getFailedReason()).isNull();
+    }
 
-        // original instance should also be updated
-        assertThat(entry.getStatus()).isEqualTo(TransactionStatusEnum.SUCCESS);
+    @Test
+    void recordFailure_shouldSaveLogWithFailedStatusAndReason() {
+        transferLogService.recordFailure("tx-fail", id(1), id(2), new BigDecimal("10.00"), "Insufficient funds");
+
+        TransferLogEntity saved = savedLog();
+        assertThat(saved.getTransactionId()).isEqualTo("tx-fail");
+        assertThat(saved.getFromAccountId()).isEqualTo(id(1));
+        assertThat(saved.getToAccountId()).isEqualTo(id(2));
+        assertThat(saved.getAmount()).isEqualByComparingTo("10.00");
+        assertThat(saved.getStatus()).isEqualTo(TransactionStatusEnum.FAILED);
+        assertThat(saved.getFailedReason()).isEqualTo("Insufficient funds");
+    }
+
+    private TransferLogEntity savedLog() {
+        ArgumentCaptor<TransferLogEntity> captor = ArgumentCaptor.forClass(TransferLogEntity.class);
+        verify(transferLogRepository).save(captor.capture());
+        return captor.getValue();
     }
 }
